@@ -111,3 +111,8 @@ export type DailyEntry = { date: string; tokens: number; messages: number };
 export async function fetchClaudeDailyTokens(days = 30): Promise<DailyEntry[]> {
   try { return await invoke<DailyEntry[]>("get_claude_daily_tokens", { days }); } catch { return []; }
 }
+
+export type UsageHistoryPoint = { ts: number; five_hour: number | null; seven_day: number | null };
+export async function fetchUsageHistory(days = 30): Promise<UsageHistoryPoint[]> {
+  try { return await invoke<UsageHistoryPoint[]>("get_usage_history", { days }); } catch { return []; }
+}

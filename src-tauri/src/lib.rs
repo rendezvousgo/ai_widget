@@ -105,6 +105,7 @@ pub fn run() {
             claude_usage::get_claude_daily_tokens,
             claude_usage::claude_trend_diag,
             oauth_usage::get_oauth_usage,
+            oauth_usage::get_usage_history,
             api_keys::list_api_keys,
             api_keys::set_api_key,
             provider_probes::probe_provider,

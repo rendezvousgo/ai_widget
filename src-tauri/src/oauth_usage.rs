@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::io::{BufRead, BufReader, Write};
 use std::sync::Mutex;
 use std::time::Instant;
 
@@ -160,5 +161,76 @@ pub async fn get_oauth_usage(force: Option<bool>) -> Result<OAuthUsage, String> 
     };
 
     *CACHE.lock().unwrap() = Some((Instant::now(), result.clone()));
+    append_snapshot(&result);
     Ok(result)
+}
+
+/// Append a usage snapshot to ~/.config/ai-quota-widget/usage_history.jsonl
+/// (deduped — only keep one snapshot per ~5 minutes).
+fn append_snapshot(usage: &OAuthUsage) {
+    let Some(dir) = crate::paths::app_config_dir() else { return };
+    let path = dir.join("usage_history.jsonl");
+
+    // Skip if last entry is < 5 min ago.
+    if let Ok(file) = std::fs::File::open(&path) {
+        let last_ts = BufReader::new(file)
+            .lines()
+            .filter_map(|l| l.ok())
+            .last()
+            .and_then(|l| serde_json::from_str::<serde_json::Value>(&l).ok())
+            .and_then(|v| v.get("ts").and_then(|t| t.as_i64()));
+        if let Some(t) = last_ts {
+            if usage.fetched_at - t < 300 {
+                return;
+            }
+        }
+    }
+
+    // Pull two main metrics; ignore others to keep the file small.
+    let five_h = usage.items.iter().find(|i| i.label == "5h window").map(|i| i.utilization);
+    let seven_d = usage.items.iter().find(|i| i.label == "Weekly").map(|i| i.utilization);
+
+    let entry = serde_json::json!({
+        "ts": usage.fetched_at,
+        "five_hour": five_h,
+        "seven_day": seven_d,
+    });
+    let line = format!("{}\n", entry);
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+    {
+        let _ = f.write_all(line.as_bytes());
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct HistoryPoint {
+    pub ts: i64,
+    pub five_hour: Option<f64>,
+    pub seven_day: Option<f64>,
+}
+
+#[tauri::command]
+pub fn get_usage_history(days: Option<u32>) -> Vec<HistoryPoint> {
+    let days = days.unwrap_or(30).clamp(1, 90);
+    let cutoff = chrono::Utc::now().timestamp() - (days as i64) * 24 * 3600;
+    let Some(dir) = crate::paths::app_config_dir() else { return vec![] };
+    let path = dir.join("usage_history.jsonl");
+    let Ok(file) = std::fs::File::open(&path) else { return vec![] };
+    let mut out: Vec<HistoryPoint> = Vec::new();
+    for line in BufReader::new(file).lines().flatten() {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) else { continue };
+        let ts = match v.get("ts").and_then(|t| t.as_i64()) {
+            Some(t) if t >= cutoff => t,
+            _ => continue,
+        };
+        out.push(HistoryPoint {
+            ts,
+            five_hour: v.get("five_hour").and_then(|x| x.as_f64()),
+            seven_day: v.get("seven_day").and_then(|x| x.as_f64()),
+        });
+    }
+    out
 }

@@ -13,6 +13,11 @@ type Dict = {
   noDailyDataHint: string;
   diagExists: string;
   diagFiles: string;
+  trendUtilHeader: string;
+  trendWeeklyNow: string;
+  trend5hNow: string;
+  trendPoints: string;
+  trendSpan: string;
   sources: (n: number) => string;
   lastSync: string;
   monitoring: string;
@@ -67,6 +72,11 @@ const en: Dict = {
   noDailyDataHint: "Trend reads local Claude Code session files (different from \"Now\", which is a live API call). Send at least one message in claude on this device — the chart will populate within a minute.",
   diagExists: "exists",
   diagFiles: "jsonl files",
+  trendUtilHeader: "Weekly utilization · sampled while widget runs",
+  trendWeeklyNow: "▬ Weekly",
+  trend5hNow: "▲ 5h",
+  trendPoints: "● Points",
+  trendSpan: "⌛ Span",
   sources: (n) => `${n} sources`,
   lastSync: "last sync ·",
   monitoring: "monitoring",
@@ -131,6 +141,11 @@ const ko: Dict = {
   noDailyDataHint: "Trend는 로컬 Claude Code 세션 파일을 읽습니다 (Now는 API 실시간 호출이라 다름). 이 PC의 claude에서 메시지를 한 번이라도 보내면 1분 내로 차트가 채워집니다.",
   diagExists: "존재",
   diagFiles: "jsonl 파일",
+  trendUtilHeader: "주간 사용률 · 위젯 실행 중 자동 수집",
+  trendWeeklyNow: "▬ 주간",
+  trend5hNow: "▲ 5시간",
+  trendPoints: "● 샘플",
+  trendSpan: "⌛ 기간",
   sources: (n) => `${n}개 소스`,
   lastSync: "마지막 갱신 ·",
   monitoring: "모니터링",

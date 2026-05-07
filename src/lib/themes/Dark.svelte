@@ -4,7 +4,7 @@
   import Settings from "./Settings.svelte";
   import Logo from "../Logo.svelte";
   import Sparkline from "../Sparkline.svelte";
-  import { fetchClaudeDailyTokens, type DailyEntry } from "../realData";
+  import { fetchClaudeDailyTokens, fetchUsageHistory, type DailyEntry, type UsageHistoryPoint } from "../realData";
   import { t as tr, providerName } from "../i18n";
 
   let p: ThemeProps = $props();
@@ -28,20 +28,23 @@
 
   let view = $state<"now" | "trend">("now");
   let daily = $state<DailyEntry[]>([]);
+  let history = $state<UsageHistoryPoint[]>([]);
   let loadingDaily = $state(false);
   type TrendDiag = { path: string; path_exists: boolean; jsonl_count: number; total_bytes: number };
   let trendDiag = $state<TrendDiag | null>(null);
   async function loadDaily() {
-    if (daily.length > 0 || loadingDaily) return;
+    if ((daily.length > 0 || history.length > 0) || loadingDaily) return;
     loadingDaily = true;
     try {
-      const [d, diag] = await Promise.all([
+      const [d, h, diag] = await Promise.all([
         fetchClaudeDailyTokens(30),
+        fetchUsageHistory(30),
         (async () => {
           try { const { invoke } = await import("@tauri-apps/api/core"); return await invoke<TrendDiag>("claude_trend_diag"); } catch { return null; }
         })(),
       ]);
       daily = d;
+      history = h;
       trendDiag = diag;
     } finally { loadingDaily = false; }
   }
@@ -153,27 +156,7 @@
       {#if active === "claude" && view === "trend"}
         {#if loadingDaily}
           <div class="hint">{T.loadingDaily}</div>
-        {:else if !daily.length || !daily.some((d) => d.tokens > 0)}
-          <div class="trend-empty">
-            <div class="trend-empty-icon">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M4 24L11 18L17 22L28 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 3"/>
-                <circle cx="11" cy="18" r="1.5" fill="currentColor"/>
-                <circle cx="17" cy="22" r="1.5" fill="currentColor"/>
-                <circle cx="28" cy="10" r="1.5" fill="currentColor"/>
-              </svg>
-            </div>
-            <div class="trend-empty-h">{T.noDailyData}</div>
-            <div class="trend-empty-sub">{T.noDailyDataHint}</div>
-            {#if trendDiag}
-              <div class="trend-diag">
-                <div class="diag-row"><span class="diag-k">scan path</span><code>{trendDiag.path}</code></div>
-                <div class="diag-row"><span class="diag-k">{T.diagExists}</span><span class="diag-v">{trendDiag.path_exists ? "✓" : "✗"}</span></div>
-                <div class="diag-row"><span class="diag-k">{T.diagFiles}</span><span class="diag-v">{trendDiag.jsonl_count}</span></div>
-              </div>
-            {/if}
-          </div>
-        {:else}
+        {:else if daily.length && daily.some((d) => d.tokens > 0)}
           {@const peak = Math.max(...daily.map(d=>d.tokens))}
           {@const total = daily.reduce((a,d)=>a+d.tokens,0)}
           {@const avg = Math.round(total/daily.length)}
@@ -191,6 +174,40 @@
               <div class="ts-cell"><div class="ts-k">{T.total}</div><div class="ts-v">{fmtNum(total)}<span class="ts-u">{T.tokens}</span></div></div>
               <div class="ts-cell"><div class="ts-k">{T.msgs}</div><div class="ts-v">{totalMsgs.toLocaleString()}</div></div>
             </div>
+          </div>
+        {:else if history.length >= 2}
+          {@const fmtTime = (ts: number) => { const d = new Date(ts*1000); return `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }}
+          {@const sevenSeries = history.filter(p => p.seven_day != null).map(p => ({ date: fmtTime(p.ts), value: (p.seven_day ?? 0) * 100 }))}
+          <div class="trend-wrap">
+            <div class="trend-h">{T.trendUtilHeader}</div>
+            <Sparkline data={sevenSeries} accent={activeProvider?.accent ?? "#d97757"} height={90} />
+            <div class="trend-stats">
+              <div class="ts-cell"><div class="ts-k">{T.trendWeeklyNow}</div><div class="ts-v">{Math.round((history[history.length-1].seven_day ?? 0)*100)}<span class="ts-u">%</span></div></div>
+              <div class="ts-cell"><div class="ts-k">{T.trend5hNow}</div><div class="ts-v">{Math.round((history[history.length-1].five_hour ?? 0)*100)}<span class="ts-u">%</span></div></div>
+              <div class="ts-cell"><div class="ts-k">{T.trendPoints}</div><div class="ts-v">{history.length}</div></div>
+              <div class="ts-cell"><div class="ts-k">{T.trendSpan}</div><div class="ts-v">{Math.round((history[history.length-1].ts - history[0].ts) / 3600)}<span class="ts-u">h</span></div></div>
+            </div>
+          </div>
+        {:else}
+          <div class="trend-empty">
+            <div class="trend-empty-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M4 24L11 18L17 22L28 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 3"/>
+                <circle cx="11" cy="18" r="1.5" fill="currentColor"/>
+                <circle cx="17" cy="22" r="1.5" fill="currentColor"/>
+                <circle cx="28" cy="10" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="trend-empty-h">{T.noDailyData}</div>
+            <div class="trend-empty-sub">{T.noDailyDataHint}</div>
+            {#if trendDiag}
+              <div class="trend-diag">
+                <div class="diag-row"><span class="diag-k">scan path</span><code>{trendDiag.path}</code></div>
+                <div class="diag-row"><span class="diag-k">{T.diagExists}</span><span class="diag-v">{trendDiag.path_exists ? "✓" : "✗"}</span></div>
+                <div class="diag-row"><span class="diag-k">{T.diagFiles}</span><span class="diag-v">{trendDiag.jsonl_count}</span></div>
+                <div class="diag-row"><span class="diag-k">snapshots</span><span class="diag-v">{history.length}</span></div>
+              </div>
+            {/if}
           </div>
         {/if}
       {:else if loading}
@@ -613,6 +630,7 @@
   .tabs button:hover { color: #ebecf0; }
   .tab-sep { color: #42454f; }
   .trend-wrap { padding-top: 10px; }
+  .trend-h { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #7a7e8a; padding-bottom: 4px; }
   .trend-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center;
