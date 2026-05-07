@@ -1,47 +1,91 @@
-# Svelte + TS + Vite
+# Quota — AI 사용량 위젯
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Tauri 2 + Svelte 5 데스크탑 위젯. Claude Pro/Max 플랜 사용량(5h, Weekly 등)과 OpenAI RPM/TPM을 한 화면에 표시.
 
-## Recommended IDE Setup
+690×422 고정창, 라이트/다크 토글, 한국어/영어 토글, 자동시작, always-on-top.
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+---
 
-## Need an official Svelte framework?
+## 사용자 — 설치만 할 거면
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+[Releases](https://github.com/rendezvousgo/ai_widget/releases)에서 OS에 맞는 파일 다운로드:
 
-## Technical considerations
+- **Windows**: `.msi` 또는 `.exe (NSIS)` — 더블클릭 설치 (코드 서명 안 됨 → SmartScreen "추가 정보 → 실행")
+- **Linux**: `.AppImage` (실행 권한 주고 그대로 실행) 또는 `.deb` (Debian/Ubuntu)
 
-**Why use this over SvelteKit?**
+처음 켜면 로그인 화면이 뜬다. 위젯이 사용량을 읽으려면 **Claude Code CLI**가 필요:
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+1. [claude.ai/install](https://claude.ai/install) 에서 Claude Code 설치
+2. 터미널/PowerShell에서:
+   ```
+   claude
+   ```
+   실행 후 안에서:
+   ```
+   /login
+   ```
+   브라우저 OAuth로 로그인 (Pro/Max 구독 필요)
+3. 위젯의 "로그인 완료 — 새로고침" 클릭
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+---
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+## 개발자 — 클론해서 빌드할 거면
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+### 사전 준비
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+**모든 OS 공통:**
+- [Node.js](https://nodejs.org) LTS
+- [Rust](https://rustup.rs) (rustup으로 설치)
 
-**Why include `.vscode/extensions.json`?**
+**Windows 추가:**
+- Visual Studio Build Tools 2022 + "C++ build tools" 워크로드 (MSVC 컴파일러용)
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+**Linux 추가:**
 ```
+sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev pkg-config
+```
+
+### 빌드 / 실행
+
+```
+git clone https://github.com/rendezvousgo/ai_widget.git
+cd ai_widget
+npm install
+```
+
+**개발 모드 (HMR로 바로 실행):**
+```
+npm run tauri dev
+```
+
+**프로덕션 빌드 (인스톨러 생성):**
+```
+npm run tauri build
+```
+
+빌드 결과물 위치:
+- Windows: `src-tauri/target/release/bundle/msi/` 와 `bundle/nsis/`
+- Linux: `src-tauri/target/release/bundle/appimage/` 와 `bundle/deb/`
+
+---
+
+## 자동 빌드 (GitHub Actions)
+
+`v*` 태그 푸시하면 Windows + Linux 동시 빌드 후 Releases에 draft 업로드:
+
+```
+git tag v0.1.0
+git push --tags
+```
+
+`.github/workflows/release.yml` 참고.
+
+---
+
+## 폴링 주기
+
+- 프론트 자동 새로고침: 45초 (`src/App.svelte`)
+- Rust 백엔드 캐시 TTL: 45초 (`src-tauri/src/oauth_usage.rs`)
+- → 시간당 약 80회 Anthropic API 호출
+
+조정하려면 두 값 같이 변경.
