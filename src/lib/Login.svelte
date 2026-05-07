@@ -15,13 +15,14 @@
   let checking = $state(false);
   let copied = $state<string>("");
 
-  async function check() {
-    checking = true;
+  async function check(silent = false) {
+    if (!silent) checking = true;
     try {
-      status = await invoke<LoginStatus>("claude_login_status");
-      if (status.logged_in) onLoggedIn();
+      const next = await invoke<LoginStatus>("claude_login_status");
+      status = next;
+      if (next.logged_in) onLoggedIn();
     } finally {
-      checking = false;
+      if (!silent) checking = false;
     }
   }
 
@@ -37,9 +38,10 @@
   }
 
   $effect(() => {
-    check();
-    // poll every 4s while login screen is shown — auto-detect once user signs in
-    const id = setInterval(check, 4000);
+    // initial check is silent so the button doesn't flash "Checking…" on mount
+    check(true);
+    // poll silently every 5s — auto-detect once user signs in, no UI flicker
+    const id = setInterval(() => check(true), 5000);
     return () => clearInterval(id);
   });
 </script>
@@ -82,7 +84,7 @@
         <span class="num">3</span>
         <div class="body">
           <div class="step-h">{T.loginStep3}</div>
-          <button class="btn primary" onclick={check} disabled={checking}>
+          <button class="btn primary" onclick={() => check(false)} disabled={checking}>
             {checking ? T.loginChecking : T.loginRefresh}
           </button>
         </div>

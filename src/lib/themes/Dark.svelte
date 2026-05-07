@@ -68,8 +68,8 @@
 </script>
 
 <div class="frame" data-tauri-drag-region>
-<header class="hd">
-    <div class="title">Quota</div>
+<header class="hd" data-tauri-drag-region>
+    <div class="title" data-tauri-drag-region>Quota</div>
     <button onclick={toggleSidebar} class="ct ct-side" data-tauri-drag-region="false" title={sidebarOpen ? "Hide sidebar" : "Show sidebar"} aria-label="Toggle sidebar">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
         <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
@@ -143,7 +143,7 @@
       {#if active === "claude" && view === "trend"}
         {#if loadingDaily}
           <div class="hint">{T.loadingDaily}</div>
-        {:else if daily.length}
+        {:else if daily.length && daily.some((d) => d.tokens > 0)}
           {@const peak = Math.max(...daily.map(d=>d.tokens))}
           {@const total = daily.reduce((a,d)=>a+d.tokens,0)}
           {@const avg = Math.round(total/daily.length)}
@@ -188,10 +188,10 @@
     </div>
   </section>
 
-  <footer class="ft">
-    <span class="ft-l">{T.sources(p.providers.length)}</span>
-    <span class="ft-c">{T.lastSync} {p.lastRefresh ? p.lastRefresh.toLocaleTimeString(p.lang === "ko" ? "ko-KR" : "en-US",{hour12:false}) : "—"}</span>
-    <span class="ft-r">v0.1.0</span>
+  <footer class="ft" data-tauri-drag-region>
+    <span class="ft-l" data-tauri-drag-region>{T.sources(p.providers.length)}</span>
+    <span class="ft-c" data-tauri-drag-region>{T.lastSync} {p.lastRefresh ? p.lastRefresh.toLocaleTimeString(p.lang === "ko" ? "ko-KR" : "en-US",{hour12:false}) : "—"}</span>
+    <span class="ft-r" data-tauri-drag-region>v0.1.0</span>
   </footer>
 
   {#if showSettings}
