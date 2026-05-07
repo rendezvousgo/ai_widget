@@ -57,3 +57,26 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Portable binary — no installer, just the raw .exe / linux ELF.
+      - name: Package portable (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path portable | Out-Null
+          Copy-Item src-tauri/target/release/app.exe portable/Quota.exe
+          Compress-Archive -Path portable/* -DestinationPath Quota-${{ github.ref_name }}-windows-portable.zip
+          gh release upload ${{ github.ref_name }} Quota-${{ github.ref_name }}-windows-portable.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package portable (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          mkdir -p portable
+          cp src-tauri/target/release/app portable/Quota
+          chmod +x portable/Quota
+          tar czf Quota-${{ github.ref_name }}-linux-portable.tar.gz -C portable Quota
+          gh release upload ${{ github.ref_name }} Quota-${{ github.ref_name }}-linux-portable.tar.gz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

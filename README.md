@@ -10,8 +10,13 @@ Tauri 2 + Svelte 5 데스크탑 위젯. Claude Pro/Max 플랜 사용량(5h, Week
 
 [Releases](https://github.com/rendezvousgo/ai_widget/releases)에서 OS에 맞는 파일 다운로드:
 
+**정식 인스톨러 (시작 메뉴/제어판 등록):**
 - **Windows**: `.msi` 또는 `.exe (NSIS)` — 더블클릭 설치 (코드 서명 안 됨 → SmartScreen "추가 정보 → 실행")
-- **Linux**: `.AppImage` (실행 권한 주고 그대로 실행) 또는 `.deb` (Debian/Ubuntu)
+- **Linux**: `.AppImage` (실행 권한 주고 실행) 또는 `.deb` (Debian/Ubuntu)
+
+**Portable (설치 없이 즉시 실행):**
+- **Windows**: `Quota-vX.Y.Z-windows-portable.zip` 다운 → 압축 풀고 `Quota.exe` 더블클릭. 시스템 안 건드림, 지울 땐 파일 삭제
+- **Linux**: `Quota-vX.Y.Z-linux-portable.tar.gz` 다운 → 풀고 `./Quota` 실행
 
 처음 켜면 로그인 화면이 뜬다. 위젯이 사용량을 읽으려면 **Claude Code CLI**가 필요:
 
