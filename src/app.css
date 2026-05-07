@@ -1,0 +1,187 @@
+/* ============================================================
+   Theme tokens — every theme overrides these via [data-theme]
+   ============================================================ */
+:root {
+  /* base palette (CYBER default) */
+  --bg-0: #050810;
+  --bg-1: #0a0e1a;
+  --bg-2: #111728;
+  --bg-3: #161d33;
+  --line: #1a2238;
+  --line-strong: #2a365e;
+  --line-bright: #4d8cff;
+  --text-0: #f4f7ff;
+  --text-1: #b6c3e2;
+  --text-2: #7e8cb0;
+  --text-3: #5a6688;
+  --neon-cyan: #00ffe1;
+  --neon-magenta: #ff2acc;
+  --neon-yellow: #ffd84d;
+  --neon-blue: #4d8cff;
+  --neon-pink: #ff3860;
+  --neon-lime: #36ffaa;
+  --accent: var(--neon-cyan);
+  --accent-2: var(--neon-magenta);
+  --danger: var(--neon-pink);
+  --warn: var(--neon-yellow);
+  --ok: var(--neon-lime);
+  --radius: 0px;
+  --cut-size: 3px;
+  --tracking: 0.2em;
+  --frame-bg: linear-gradient(180deg, #0a0f1c 0%, #050810 100%);
+  --topbar-bg: linear-gradient(180deg, #11182a 0%, #0a1020 100%);
+  --hairline-grad: linear-gradient(90deg, transparent 0%, var(--neon-cyan) 30%, var(--neon-magenta) 70%, transparent 100%);
+  --noise-opacity: 0;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-stack: var(--mono);
+}
+
+/* ============================================================
+   TERMINAL — green phosphor on black, CRT scanlines, ASCII feel
+   ============================================================ */
+[data-theme="terminal"] {
+  --bg-0: #02060a;
+  --bg-1: #04140a;
+  --bg-2: #061a0c;
+  --bg-3: #082612;
+  --line: #0d3018;
+  --line-strong: #1a5028;
+  --line-bright: #00ff66;
+  --text-0: #b6ffd1;
+  --text-1: #6cd690;
+  --text-2: #33aa55;
+  --text-3: #225533;
+  --neon-cyan: #00ff66;
+  --neon-magenta: #00cc55;
+  --neon-yellow: #aaff00;
+  --neon-blue: #00aa44;
+  --neon-pink: #ff4444;
+  --neon-lime: #00ff66;
+  --accent: var(--neon-cyan);
+  --accent-2: var(--neon-cyan);
+  --danger: var(--neon-pink);
+  --warn: var(--neon-yellow);
+  --ok: var(--neon-cyan);
+  --radius: 0px;
+  --cut-size: 0px;
+  --tracking: 0.18em;
+  --frame-bg:
+    repeating-linear-gradient(180deg,
+      rgba(0, 255, 102, 0.025) 0,
+      rgba(0, 255, 102, 0.025) 1px,
+      transparent 1px,
+      transparent 3px),
+    linear-gradient(180deg, #04140a 0%, #020806 100%);
+  --topbar-bg: linear-gradient(180deg, #052012 0%, #03110a 100%);
+  --hairline-grad: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+}
+
+/* ============================================================
+   NEURAL — soft purple/pink AI, rounded corners, gentle gradient
+   ============================================================ */
+[data-theme="neural"] {
+  --bg-0: #08071a;
+  --bg-1: #110f2c;
+  --bg-2: #1a1740;
+  --bg-3: #2a2358;
+  --line: #2a2358;
+  --line-strong: #4a3e8a;
+  --line-bright: #a78bfa;
+  --text-0: #f5f0ff;
+  --text-1: #c4b5fd;
+  --text-2: #8b7ed6;
+  --text-3: #5e548d;
+  --neon-cyan: #a78bfa;
+  --neon-magenta: #f472b6;
+  --neon-yellow: #fbbf24;
+  --neon-blue: #818cf8;
+  --neon-pink: #fb7185;
+  --neon-lime: #a3e635;
+  --accent: var(--neon-cyan);
+  --accent-2: var(--neon-magenta);
+  --danger: var(--neon-pink);
+  --warn: var(--neon-yellow);
+  --ok: var(--neon-lime);
+  --radius: 8px;
+  --cut-size: 0px;
+  --tracking: 0.12em;
+  --frame-bg:
+    radial-gradient(circle at 30% 0%, rgba(167, 139, 250, 0.12), transparent 50%),
+    radial-gradient(circle at 70% 100%, rgba(244, 114, 182, 0.10), transparent 50%),
+    linear-gradient(180deg, #110f2c 0%, #08071a 100%);
+  --topbar-bg: linear-gradient(180deg, #1f1a44 0%, #110f2c 100%);
+  --hairline-grad: linear-gradient(90deg, transparent, var(--neon-cyan) 40%, var(--neon-magenta) 60%, transparent);
+}
+
+/* ============================================================
+   HUD — tactical amber/red, stencil, target brackets
+   ============================================================ */
+[data-theme="hud"] {
+  --bg-0: #0a0805;
+  --bg-1: #14100a;
+  --bg-2: #1c1810;
+  --bg-3: #2a2218;
+  --line: #2a2218;
+  --line-strong: #4a3a20;
+  --line-bright: #ffaa33;
+  --text-0: #fff2dd;
+  --text-1: #ffb866;
+  --text-2: #b88a44;
+  --text-3: #6a5028;
+  --neon-cyan: #ffaa33;
+  --neon-magenta: #ff5533;
+  --neon-yellow: #ffd84d;
+  --neon-blue: #ffaa33;
+  --neon-pink: #ff3322;
+  --neon-lime: #88dd44;
+  --accent: var(--neon-cyan);
+  --accent-2: var(--neon-magenta);
+  --danger: var(--neon-pink);
+  --warn: var(--neon-yellow);
+  --ok: var(--neon-lime);
+  --radius: 0px;
+  --cut-size: 0px;
+  --tracking: 0.24em;
+  --frame-bg: linear-gradient(180deg, #14100a 0%, #0a0805 100%);
+  --topbar-bg: linear-gradient(180deg, #1c1810 0%, #0e0b08 100%);
+  --hairline-grad: linear-gradient(90deg, transparent, var(--neon-cyan) 50%, transparent);
+}
+
+/* ============================================================
+   reset
+   ============================================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: var(--text-0);
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
