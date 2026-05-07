@@ -103,6 +103,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             claude_usage::get_claude_usage,
             claude_usage::get_claude_daily_tokens,
+            claude_usage::claude_trend_diag,
             oauth_usage::get_oauth_usage,
             api_keys::list_api_keys,
             api_keys::set_api_key,

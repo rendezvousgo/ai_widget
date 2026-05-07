@@ -29,11 +29,21 @@
   let view = $state<"now" | "trend">("now");
   let daily = $state<DailyEntry[]>([]);
   let loadingDaily = $state(false);
+  type TrendDiag = { path: string; path_exists: boolean; jsonl_count: number; total_bytes: number };
+  let trendDiag = $state<TrendDiag | null>(null);
   async function loadDaily() {
     if (daily.length > 0 || loadingDaily) return;
     loadingDaily = true;
-    try { daily = await fetchClaudeDailyTokens(30); }
-    finally { loadingDaily = false; }
+    try {
+      const [d, diag] = await Promise.all([
+        fetchClaudeDailyTokens(30),
+        (async () => {
+          try { const { invoke } = await import("@tauri-apps/api/core"); return await invoke<TrendDiag>("claude_trend_diag"); } catch { return null; }
+        })(),
+      ]);
+      daily = d;
+      trendDiag = diag;
+    } finally { loadingDaily = false; }
   }
   async function setView(v: "now" | "trend") {
     view = v;
@@ -155,6 +165,13 @@
             </div>
             <div class="trend-empty-h">{T.noDailyData}</div>
             <div class="trend-empty-sub">{T.noDailyDataHint}</div>
+            {#if trendDiag}
+              <div class="trend-diag">
+                <div class="diag-row"><span class="diag-k">scan path</span><code>{trendDiag.path}</code></div>
+                <div class="diag-row"><span class="diag-k">{T.diagExists}</span><span class="diag-v">{trendDiag.path_exists ? "✓" : "✗"}</span></div>
+                <div class="diag-row"><span class="diag-k">{T.diagFiles}</span><span class="diag-v">{trendDiag.jsonl_count}</span></div>
+              </div>
+            {/if}
           </div>
         {:else}
           {@const peak = Math.max(...daily.map(d=>d.tokens))}
@@ -604,7 +621,23 @@
   }
   .trend-empty-icon { color: #c8c2b1; margin-bottom: 6px; }
   .trend-empty-h { font-size: 13px; font-weight: 500; color: #1a1a1a; }
-  .trend-empty-sub { font-size: 11px; color: #999; line-height: 1.5; max-width: 320px; }
+  .trend-empty-sub { font-size: 11px; color: #999; line-height: 1.5; max-width: 360px; }
+  .trend-diag {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid #ece6d5;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-size: 9px;
+    color: #888;
+    max-width: 100%;
+    overflow-x: auto;
+    text-align: left;
+  }
+  .diag-row { display: flex; gap: 8px; align-items: baseline; padding: 1px 0; }
+  .diag-k { color: #aaa; min-width: 70px; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .diag-v { color: #555; }
+  .trend-diag code { font-family: inherit; color: #555; word-break: break-all; }
   .trend-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

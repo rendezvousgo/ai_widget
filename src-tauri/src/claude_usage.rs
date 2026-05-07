@@ -30,6 +30,41 @@ pub struct DailyEntry {
     pub messages: u32,
 }
 
+#[derive(Debug, Serialize)]
+pub struct TrendDiag {
+    pub path: String,
+    pub path_exists: bool,
+    pub jsonl_count: u32,
+    pub total_bytes: u64,
+}
+
+#[tauri::command]
+pub fn claude_trend_diag() -> TrendDiag {
+    let projects_dir = crate::paths::claude_projects_dir();
+    let path_str = projects_dir
+        .as_ref()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let exists = projects_dir.as_ref().map(|p| p.exists()).unwrap_or(false);
+    let mut count = 0u32;
+    let mut bytes = 0u64;
+    if let Some(p) = &projects_dir {
+        if p.exists() {
+            for entry in WalkDir::new(p).max_depth(3).into_iter().filter_map(|e| e.ok()) {
+                if entry.path().is_file()
+                    && entry.path().extension().and_then(|e| e.to_str()) == Some("jsonl")
+                {
+                    count += 1;
+                    if let Ok(meta) = entry.metadata() {
+                        bytes += meta.len();
+                    }
+                }
+            }
+        }
+    }
+    TrendDiag { path: path_str, path_exists: exists, jsonl_count: count, total_bytes: bytes }
+}
+
 #[tauri::command]
 pub fn get_claude_daily_tokens(days: Option<u32>) -> Result<Vec<DailyEntry>, String> {
     let days = days.unwrap_or(30).clamp(1, 90);

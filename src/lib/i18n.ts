@@ -11,6 +11,8 @@ type Dict = {
   loadingDaily: string;
   noDailyData: string;
   noDailyDataHint: string;
+  diagExists: string;
+  diagFiles: string;
   sources: (n: number) => string;
   lastSync: string;
   monitoring: string;
@@ -62,7 +64,9 @@ const en: Dict = {
   loading: "loading…",
   loadingDaily: "loading 30d…",
   noDailyData: "No usage history yet",
-  noDailyDataHint: "The trend chart will appear after you start using Claude Code on this device.",
+  noDailyDataHint: "Trend reads local Claude Code session files (different from \"Now\", which is a live API call). Send at least one message in claude on this device — the chart will populate within a minute.",
+  diagExists: "exists",
+  diagFiles: "jsonl files",
   sources: (n) => `${n} sources`,
   lastSync: "last sync ·",
   monitoring: "monitoring",
@@ -124,7 +128,9 @@ const ko: Dict = {
   loading: "불러오는 중…",
   loadingDaily: "30일 로드 중…",
   noDailyData: "사용 기록이 아직 없어요",
-  noDailyDataHint: "이 PC에서 Claude Code를 쓰기 시작하면 추이 그래프가 표시됩니다.",
+  noDailyDataHint: "Trend는 로컬 Claude Code 세션 파일을 읽습니다 (Now는 API 실시간 호출이라 다름). 이 PC의 claude에서 메시지를 한 번이라도 보내면 1분 내로 차트가 채워집니다.",
+  diagExists: "존재",
+  diagFiles: "jsonl 파일",
   sources: (n) => `${n}개 소스`,
   lastSync: "마지막 갱신 ·",
   monitoring: "모니터링",
