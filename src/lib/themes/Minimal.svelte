@@ -143,7 +143,20 @@
       {#if active === "claude" && view === "trend"}
         {#if loadingDaily}
           <div class="hint">{T.loadingDaily}</div>
-        {:else if daily.length && daily.some((d) => d.tokens > 0)}
+        {:else if !daily.length || !daily.some((d) => d.tokens > 0)}
+          <div class="trend-empty">
+            <div class="trend-empty-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M4 24L11 18L17 22L28 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 3"/>
+                <circle cx="11" cy="18" r="1.5" fill="currentColor"/>
+                <circle cx="17" cy="22" r="1.5" fill="currentColor"/>
+                <circle cx="28" cy="10" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="trend-empty-h">{T.noDailyData}</div>
+            <div class="trend-empty-sub">{T.noDailyDataHint}</div>
+          </div>
+        {:else}
           {@const peak = Math.max(...daily.map(d=>d.tokens))}
           {@const total = daily.reduce((a,d)=>a+d.tokens,0)}
           {@const avg = Math.round(total/daily.length)}
@@ -162,8 +175,6 @@
               <div class="ts-cell"><div class="ts-k">{T.msgs}</div><div class="ts-v">{totalMsgs.toLocaleString()}</div></div>
             </div>
           </div>
-        {:else}
-          <div class="hint">{T.noDailyData}</div>
         {/if}
       {:else if loading}
         <div class="hint">{T.loading}</div>
@@ -585,6 +596,15 @@
   .tabs button:hover { color: #1a1a1a; }
   .tab-sep { color: #ccc; }
   .trend-wrap { padding-top: 10px; }
+  .trend-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 40px 24px 24px 24px;
+    gap: 8px;
+  }
+  .trend-empty-icon { color: #c8c2b1; margin-bottom: 6px; }
+  .trend-empty-h { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+  .trend-empty-sub { font-size: 11px; color: #999; line-height: 1.5; max-width: 320px; }
   .trend-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);

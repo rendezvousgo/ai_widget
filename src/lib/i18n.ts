@@ -10,6 +10,7 @@ type Dict = {
   loading: string;
   loadingDaily: string;
   noDailyData: string;
+  noDailyDataHint: string;
   sources: (n: number) => string;
   lastSync: string;
   monitoring: string;
@@ -60,7 +61,8 @@ const en: Dict = {
   noData: (n) => `no data — click ${n} to load`,
   loading: "loading…",
   loadingDaily: "loading 30d…",
-  noDailyData: "no daily data found",
+  noDailyData: "No usage history yet",
+  noDailyDataHint: "The trend chart will appear after you start using Claude Code on this device.",
   sources: (n) => `${n} sources`,
   lastSync: "last sync ·",
   monitoring: "monitoring",
@@ -121,7 +123,8 @@ const ko: Dict = {
   noData: (n) => `데이터 없음 — ${n} 클릭`,
   loading: "불러오는 중…",
   loadingDaily: "30일 로드 중…",
-  noDailyData: "일별 데이터 없음",
+  noDailyData: "사용 기록이 아직 없어요",
+  noDailyDataHint: "이 PC에서 Claude Code를 쓰기 시작하면 추이 그래프가 표시됩니다.",
   sources: (n) => `${n}개 소스`,
   lastSync: "마지막 갱신 ·",
   monitoring: "모니터링",
