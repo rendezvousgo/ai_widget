@@ -19,7 +19,14 @@
     if (!silent) checking = true;
     try {
       const next = await invoke<LoginStatus>("claude_login_status");
-      status = next;
+      // only re-assign when something actually changed — avoids re-render flicker
+      if (
+        !status ||
+        status.logged_in !== next.logged_in ||
+        status.cli_installed !== next.cli_installed
+      ) {
+        status = next;
+      }
       if (next.logged_in) onLoggedIn();
     } finally {
       if (!silent) checking = false;
@@ -40,8 +47,8 @@
   $effect(() => {
     // initial check is silent so the button doesn't flash "Checking…" on mount
     check(true);
-    // poll silently every 5s — auto-detect once user signs in, no UI flicker
-    const id = setInterval(() => check(true), 5000);
+    // poll silently every 10s — auto-detect once user signs in
+    const id = setInterval(() => check(true), 10000);
     return () => clearInterval(id);
   });
 </script>

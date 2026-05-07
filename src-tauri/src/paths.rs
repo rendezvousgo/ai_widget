@@ -38,32 +38,49 @@ pub fn keystore_path() -> Option<PathBuf> {
 }
 
 /// Detect whether the `claude` CLI is on PATH or in known install locations.
+/// On Windows we deliberately avoid spawning a child process so no console
+/// window flashes during the login-screen polling.
 pub fn claude_cli_installed() -> bool {
     if let Some(home) = home() {
-        // Common install spots
-        for candidate in [
+        let mut candidates: Vec<PathBuf> = vec![
             home.join(".local/bin/claude"),
             home.join(".npm-global/bin/claude"),
-            #[cfg(target_os = "windows")]
-            home.join("AppData/Local/AnthropicClaude/claude.exe"),
-            #[cfg(target_os = "windows")]
-            home.join("AppData/Roaming/npm/claude.cmd"),
-        ] {
+        ];
+        #[cfg(target_os = "windows")]
+        {
+            candidates.push(home.join("AppData/Local/AnthropicClaude/claude.exe"));
+            candidates.push(home.join("AppData/Local/Programs/Claude/claude.exe"));
+            candidates.push(home.join("AppData/Roaming/npm/claude.cmd"));
+            candidates.push(home.join("AppData/Roaming/npm/claude.ps1"));
+            candidates.push(home.join("AppData/Roaming/npm/claude"));
+            candidates.push(home.join("scoop/shims/claude.exe"));
+            candidates.push(home.join("scoop/shims/claude"));
+        }
+        for candidate in &candidates {
             if candidate.exists() {
                 return true;
             }
         }
     }
-    // Fall back to PATH lookup
-    #[cfg(target_os = "windows")]
-    let cmd = ("cmd", &["/C", "where claude"][..]);
-    #[cfg(not(target_os = "windows"))]
-    let cmd = ("sh", &["-c", "command -v claude >/dev/null 2>&1"][..]);
-    std::process::Command::new(cmd.0)
-        .args(cmd.1)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+
+    // Walk PATH ourselves on every OS — no child process spawn, no console flash.
+    if let Ok(path_var) = std::env::var("PATH") {
+        let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
+        let names: &[&str] = if cfg!(target_os = "windows") {
+            &["claude.exe", "claude.cmd", "claude.bat", "claude"]
+        } else {
+            &["claude"]
+        };
+        for dir in path_var.split(sep) {
+            if dir.is_empty() {
+                continue;
+            }
+            for name in names {
+                if PathBuf::from(dir).join(name).exists() {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
