@@ -39,6 +39,24 @@ pub struct OAuthUsage {
 
 static CACHE: Mutex<Option<(Instant, OAuthUsage)>> = Mutex::new(None);
 const CACHE_TTL_SECS: u64 = 45;
+// On any transient API failure (network, 5xx, 429), serve cached data up to
+// this many seconds old instead of leaving the user with a blank screen.
+const STALE_FALLBACK_SECS: u64 = 3600;
+
+/// Return last cached usage marked as stale, if it's still within the
+/// fallback window. Used when fetching fresh data fails for a recoverable
+/// reason and we don't want to flash an error at the user.
+fn stale_fallback() -> Option<OAuthUsage> {
+    let cache = CACHE.lock().ok()?;
+    let (t, u) = cache.as_ref()?;
+    if t.elapsed().as_secs() <= STALE_FALLBACK_SECS {
+        let mut stale = u.clone();
+        stale.cached = true;
+        Some(stale)
+    } else {
+        None
+    }
+}
 
 fn read_access_token() -> Option<String> {
     let path = crate::paths::claude_credentials()?;
@@ -107,34 +125,47 @@ pub async fn get_oauth_usage(force: Option<bool>) -> Result<OAuthUsage, String> 
         .build()
         .map_err(|e| e.to_string())?;
 
-    let resp = client
+    // Network-level failure → if we have a recent cache, serve it stale
+    // instead of forcing the user to stare at an error.
+    let resp = match client
         .get("https://api.anthropic.com/api/oauth/usage")
         .header("Authorization", format!("Bearer {}", token))
         .header("anthropic-beta", "oauth-2025-04-20")
         .header("User-Agent", "ai-quota-widget/0.1")
         .send()
         .await
-        .map_err(|e| format!("network: {}", e))?;
+    {
+        Ok(r) => r,
+        Err(e) => {
+            if let Some(stale) = stale_fallback() { return Ok(stale); }
+            return Err(format!("network: {}", e));
+        }
+    };
 
     let status = resp.status();
+    // 401 = token expired. User has to run `claude` to refresh, so we
+    // surface this loudly even if a cache exists.
     if status == reqwest::StatusCode::UNAUTHORIZED {
         return Err("Claude session expired — run `claude` once to refresh.".into());
     }
     if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        // serve stale cache if any
-        if let Some((_, u)) = CACHE.lock().unwrap().as_ref() {
-            let mut stale = u.clone();
-            stale.cached = true;
-            return Ok(stale);
-        }
+        if let Some(stale) = stale_fallback() { return Ok(stale); }
         return Err("rate-limited (429); try again in a few minutes".into());
     }
     if !status.is_success() {
+        // 5xx, 502/503/504 etc. — same idea, prefer stale data over a blank error.
+        if let Some(stale) = stale_fallback() { return Ok(stale); }
         let body = resp.text().await.unwrap_or_default();
         return Err(format!("HTTP {}: {}", status.as_u16(), body));
     }
 
-    let data: UsageResponse = resp.json().await.map_err(|e| format!("parse: {}", e))?;
+    let data: UsageResponse = match resp.json().await {
+        Ok(d) => d,
+        Err(e) => {
+            if let Some(stale) = stale_fallback() { return Ok(stale); }
+            return Err(format!("parse: {}", e));
+        }
+    };
 
     // Codename → user-facing label mapping.
     //   omelette  → "Design" (Claude's new Design feature)
