@@ -201,14 +201,6 @@
             </div>
             <div class="trend-empty-h">{T.noDailyData}</div>
             <div class="trend-empty-sub">{T.noDailyDataHint}</div>
-            {#if trendDiag}
-              <div class="trend-diag">
-                <div class="diag-row"><span class="diag-k">scan path</span><code>{trendDiag.path}</code></div>
-                <div class="diag-row"><span class="diag-k">{T.diagExists}</span><span class="diag-v">{trendDiag.path_exists ? "✓" : "✗"}</span></div>
-                <div class="diag-row"><span class="diag-k">{T.diagFiles}</span><span class="diag-v">{trendDiag.jsonl_count}</span></div>
-                <div class="diag-row"><span class="diag-k">snapshots</span><span class="diag-v">{history.length}</span></div>
-              </div>
-            {/if}
           </div>
         {/if}
       {:else if loading}
@@ -640,23 +632,7 @@
   }
   .trend-empty-icon { color: #c8c2b1; margin-bottom: 6px; }
   .trend-empty-h { font-size: 13px; font-weight: 500; color: #1a1a1a; }
-  .trend-empty-sub { font-size: 11px; color: #999; line-height: 1.5; max-width: 360px; }
-  .trend-diag {
-    margin-top: 10px;
-    padding: 8px 12px;
-    background: rgba(0,0,0,0.03);
-    border: 1px solid #ece6d5;
-    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
-    font-size: 9px;
-    color: #888;
-    max-width: 100%;
-    overflow-x: auto;
-    text-align: left;
-  }
-  .diag-row { display: flex; gap: 8px; align-items: baseline; padding: 1px 0; }
-  .diag-k { color: #aaa; min-width: 70px; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .diag-v { color: #555; }
-  .trend-diag code { font-family: inherit; color: #555; word-break: break-all; }
+  .trend-empty-sub { font-size: 11px; color: #999; line-height: 1.5; max-width: 320px; }
   .trend-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
