@@ -228,7 +228,7 @@
   <footer class="ft" data-tauri-drag-region>
     <span class="ft-l" data-tauri-drag-region>{T.sources(p.providers.length)}</span>
     <span class="ft-c" data-tauri-drag-region>{T.lastSync} {p.lastRefresh ? p.lastRefresh.toLocaleTimeString(p.lang === "ko" ? "ko-KR" : "en-US",{hour12:false}) : "—"}</span>
-    <span class="ft-r" data-tauri-drag-region>v0.1.0</span>
+    <span class="ft-r" data-tauri-drag-region>v0.1.2</span>
   </footer>
 
   {#if showSettings}
