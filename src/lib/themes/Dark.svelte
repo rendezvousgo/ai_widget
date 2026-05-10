@@ -110,11 +110,6 @@
           <path d="M9 2h6v6l4 4H5l4-4V2z M12 12v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button onclick={p.onMinimize} class="ct" title="Minimize" aria-label="Minimize">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <path d="M3 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
       <button onclick={p.onToggleDark} class="ct" class:on={p.isDark} title={p.isDark ? T.light : T.dark} aria-label="Toggle dark mode">
         {#if p.isDark}
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -126,6 +121,11 @@
             <path d="M14.5 7.5A6 6 0 118 1A4.7 4.7 0 0014.5 7.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
           </svg>
         {/if}
+      </button>
+      <button onclick={p.onMinimize} class="ct" title="Minimize" aria-label="Minimize">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
       </button>
       <button onclick={p.onClose} class="ct danger" title={T.close} aria-label="Close">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
