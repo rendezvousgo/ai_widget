@@ -80,9 +80,9 @@
   const activeProvider = $derived(p.providers.find((x) => x.id === active));
 </script>
 
-<div class="frame" data-tauri-drag-region>
-<header class="hd" data-tauri-drag-region>
-    <div class="title" data-tauri-drag-region>Quota</div>
+<div class="frame" data-tauri-drag-region={p.pinned ? "false" : true}>
+<header class="hd" data-tauri-drag-region={p.pinned ? "false" : true}>
+    <div class="title" data-tauri-drag-region={p.pinned ? "false" : true}>Quota</div>
     <button onclick={toggleSidebar} class="ct ct-side" data-tauri-drag-region="false" title={sidebarOpen ? "Hide sidebar" : "Show sidebar"} aria-label="Toggle sidebar">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
         <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
@@ -103,6 +103,16 @@
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M9.6 1.5l.3 1.6a5.5 5.5 0 011.4 0.8l1.5-.5 1.4 2.4-1.2 1.1a5.5 5.5 0 010 1.6l1.2 1.1-1.4 2.4-1.5-.5a5.5 5.5 0 01-1.4 .8l-.3 1.6h-3.2l-.3-1.6a5.5 5.5 0 01-1.4-.8l-1.5 .5-1.4-2.4 1.2-1.1a5.5 5.5 0 010-1.6l-1.2-1.1 1.4-2.4 1.5 .5a5.5 5.5 0 011.4-.8l.3-1.6h3.2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
           <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+      </button>
+      <button onclick={p.onTogglePin} class="ct" class:on={p.pinned} title={T.pin} aria-label="Pin window">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M9 2h6v6l4 4H5l4-4V2z M12 12v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button onclick={p.onMinimize} class="ct" title="Minimize" aria-label="Minimize">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M3 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
       <button onclick={p.onToggleDark} class="ct" class:on={p.isDark} title={p.isDark ? T.light : T.dark} aria-label="Toggle dark mode">
@@ -225,10 +235,10 @@
     </div>
   </section>
 
-  <footer class="ft" data-tauri-drag-region>
-    <span class="ft-l" data-tauri-drag-region>{T.sources(p.providers.length)}</span>
-    <span class="ft-c" data-tauri-drag-region>{T.lastSync} {p.lastRefresh ? p.lastRefresh.toLocaleTimeString(p.lang === "ko" ? "ko-KR" : "en-US",{hour12:false}) : "—"}</span>
-    <span class="ft-r" data-tauri-drag-region>v0.1.0</span>
+  <footer class="ft" data-tauri-drag-region={p.pinned ? "false" : true}>
+    <span class="ft-l" data-tauri-drag-region={p.pinned ? "false" : true}>{T.sources(p.providers.length)}</span>
+    <span class="ft-c" data-tauri-drag-region={p.pinned ? "false" : true}>{T.lastSync} {p.lastRefresh ? p.lastRefresh.toLocaleTimeString(p.lang === "ko" ? "ko-KR" : "en-US",{hour12:false}) : "—"}</span>
+    <span class="ft-r" data-tauri-drag-region={p.pinned ? "false" : true}>v0.1.3</span>
   </footer>
 
   {#if showSettings}

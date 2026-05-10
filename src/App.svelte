@@ -24,7 +24,7 @@
   const win = getCurrentWindow();
   const RATIO = 360 / 220;
   const MIN_W = 320;
-  const AUTO_REFRESH_MS = 45 * 1000;
+  const AUTO_REFRESH_MS = 90 * 1000;
 
   const THEMES = ["minimal", "dark"] as const;
   type Theme = (typeof THEMES)[number];
@@ -112,6 +112,9 @@
   }
   function close() {
     win.close().catch(() => {});
+  }
+  function minimize() {
+    win.minimize().catch(() => {});
   }
   async function toggleAutostart() {
     try {
@@ -212,6 +215,7 @@
     themesCount: THEMES.length,
     onTogglePin: togglePin,
     onClose: close,
+    onMinimize: minimize,
     onRefresh: () => refreshClaude(true),
     onToggleAutostart: toggleAutostart,
     onCycleTheme: cycleTheme,

@@ -47,6 +47,24 @@ jobs:
       - name: Install npm deps
         run: npm ci
 
+      # Per-tag release notes: drop a markdown file at `releases/<tag>.md`
+      # and we'll surface it as the GitHub release body.
+      - name: Read release notes
+        id: notes
+        shell: bash
+        run: |
+          FILE="releases/${{ github.ref_name }}.md"
+          if [ -f "$FILE" ]; then
+            {
+              echo 'body<<__EOF__'
+              cat "$FILE"
+              echo
+              echo '__EOF__'
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo 'body=' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -54,6 +72,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Quota ${{ github.ref_name }}"
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

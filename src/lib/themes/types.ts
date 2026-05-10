@@ -13,6 +13,7 @@ export type ThemeProps = {
   themesCount: number;
   onTogglePin: () => void;
   onClose: () => void;
+  onMinimize: () => void;
   onRefresh: () => void;
   onToggleAutostart: () => void;
   onCycleTheme: () => void;

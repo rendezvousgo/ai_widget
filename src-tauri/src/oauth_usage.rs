@@ -38,7 +38,7 @@ pub struct OAuthUsage {
 }
 
 static CACHE: Mutex<Option<(Instant, OAuthUsage)>> = Mutex::new(None);
-const CACHE_TTL_SECS: u64 = 45;
+const CACHE_TTL_SECS: u64 = 90;
 // On any transient API failure (network, 5xx, 429), serve cached data up to
 // this many seconds old instead of leaving the user with a blank screen.
 const STALE_FALLBACK_SECS: u64 = 3600;
