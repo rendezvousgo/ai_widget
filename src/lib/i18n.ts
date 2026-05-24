@@ -11,6 +11,8 @@ type Dict = {
   loadingDaily: string;
   noDailyData: string;
   noDailyDataHint: string;
+  noDailyDataHintGeneric: string;
+  statusTab: string;
   trendUtilHeader: string;
   trendWeeklyNow: string;
   trend5hNow: string;
@@ -68,6 +70,8 @@ const en: Dict = {
   loadingDaily: "loading 30d…",
   noDailyData: "No usage history yet",
   noDailyDataHint: "The trend chart will appear after you start using Claude Code on this device.",
+  noDailyDataHintGeneric: "Usage history is collected automatically while the widget is running.",
+  statusTab: "Status",
   trendUtilHeader: "Weekly utilization · sampled while widget runs",
   trendWeeklyNow: "▬ Weekly",
   trend5hNow: "▲ 5h",
@@ -135,6 +139,8 @@ const ko: Dict = {
   loadingDaily: "30일 로드 중…",
   noDailyData: "사용 기록이 아직 없어요",
   noDailyDataHint: "이 PC에서 Claude Code를 쓰기 시작하면 추이 그래프가 표시됩니다.",
+  noDailyDataHintGeneric: "위젯을 켜두면 사용 기록이 자동으로 수집됩니다.",
+  statusTab: "상태",
   trendUtilHeader: "주간 사용률 · 위젯 실행 중 자동 수집",
   trendWeeklyNow: "▬ 주간",
   trend5hNow: "▲ 5시간",

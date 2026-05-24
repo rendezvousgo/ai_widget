@@ -41,6 +41,7 @@
   let usageCache = $state<Record<string, QuotaPayload | null>>({});
   let theme = $state<Theme>("minimal");
   let lang = $state<"en" | "ko">("en");
+  let tz = $state<"utc" | "kst">("kst");
   let loggedIn = $state<boolean | null>(null); // null = not yet checked
 
   async function checkLogin() {
@@ -69,11 +70,14 @@
     try { localStorage.setItem("theme", theme); } catch {}
   }
 
-  async function refreshClaude(force = false) {
+  async function refreshAll(force = false) {
     refreshing = true;
     try {
-      const result = await getQuota("claude", "plan", force);
-      usageCache = { ...usageCache, claude: result };
+      const [claude, openai] = await Promise.all([
+        getQuota("claude", "plan", force),
+        getQuota("openai", "plan", force),
+      ]);
+      usageCache = { ...usageCache, claude, openai };
       lastRefresh = new Date();
     } finally {
       refreshing = false;
@@ -82,9 +86,7 @@
 
   async function loadSegment(id: string, kind: "api" | "plan"): Promise<QuotaPayload | null> {
     const result = await getQuota(id, kind);
-    if (id === "claude" && kind === "plan") {
-      usageCache = { ...usageCache, claude: result };
-    }
+    usageCache = { ...usageCache, [id]: result };
     return result;
   }
 
@@ -94,11 +96,13 @@
       if (saved && THEMES.includes(saved)) theme = saved;
       const savedLang = localStorage.getItem("lang") as "en" | "ko" | null;
       if (savedLang === "en" || savedLang === "ko") lang = savedLang;
+      const savedTz = localStorage.getItem("tz") as "utc" | "kst" | null;
+      if (savedTz === "utc" || savedTz === "kst") tz = savedTz;
     } catch {}
     checkLogin();
     const tickClock = setInterval(() => (now = new Date()), 1000);
-    refreshClaude(false);
-    const tickRefresh = setInterval(() => refreshClaude(false), AUTO_REFRESH_MS);
+    refreshAll(false);
+    const tickRefresh = setInterval(() => refreshAll(false), AUTO_REFRESH_MS);
     isAutostartEnabled().then((v) => (autostart = v)).catch(() => {});
     return () => {
       clearInterval(tickClock);
@@ -216,13 +220,15 @@
     onTogglePin: togglePin,
     onClose: close,
     onMinimize: minimize,
-    onRefresh: () => refreshClaude(true),
+    onRefresh: () => refreshAll(true),
     onToggleAutostart: toggleAutostart,
     onCycleTheme: cycleTheme,
     onToggleDark: toggleDark,
     isDark: theme === "dark",
     lang,
+    tz,
     onToggleLang: toggleLang,
+    onSetTz: (v: "utc" | "kst") => { tz = v; try { localStorage.setItem("tz", v); } catch {} },
     onOpenProvider: openProviderUrl,
     onLoadSegment: loadSegment,
   });

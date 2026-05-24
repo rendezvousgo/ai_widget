@@ -14,6 +14,9 @@ export type QuotaPayload = {
   fetchedAt: number;
   error?: string;
   plan?: string;
+  renewsUtc?: string | null;
+  renewsKst?: string | null;
+  renewsDays?: number | null;
 };
 
 export type Provider = {

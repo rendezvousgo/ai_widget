@@ -13,6 +13,6 @@ export const PROVIDERS: Provider[] = [
     name: "OPENAI",
     accent: "#36ffaa",
     glow: "#36ffaa",
-    available: { api: true, plan: false },
+    available: { api: false, plan: true },
   },
 ];

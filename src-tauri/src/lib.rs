@@ -1,5 +1,7 @@
 mod claude_usage;
 mod oauth_usage;
+mod chatgpt_usage;
+mod service_status;
 mod api_keys;
 mod provider_probes;
 mod login_status;
@@ -110,6 +112,10 @@ pub fn run() {
             api_keys::set_api_key,
             provider_probes::probe_provider,
             login_status::claude_login_status,
+            chatgpt_usage::get_chatgpt_usage,
+            chatgpt_usage::get_chatgpt_usage_history,
+            chatgpt_usage::get_codex_daily_tokens,
+            service_status::get_service_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

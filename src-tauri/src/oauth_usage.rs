@@ -35,6 +35,9 @@ pub struct OAuthUsage {
     pub cached: bool,
     pub plan: String,
     pub plan_raw: String,
+    pub renews_at_utc: Option<String>,
+    pub renews_at_kst: Option<String>,
+    pub renews_days: Option<i64>,
 }
 
 static CACHE: Mutex<Option<(Instant, OAuthUsage)>> = Mutex::new(None);
@@ -55,6 +58,51 @@ fn stale_fallback() -> Option<OAuthUsage> {
         Some(stale)
     } else {
         None
+    }
+}
+
+fn read_claude_renewal() -> (Option<String>, Option<String>, Option<i64>) {
+    fn inner() -> Option<(String, String, i64)> {
+        let path = crate::paths::claude_json()?;
+        let content = std::fs::read_to_string(&path).ok()?;
+        let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+        let created_str = v.get("oauthAccount")?.get("subscriptionCreatedAt")?.as_str()?;
+        let created = chrono::DateTime::parse_from_rfc3339(created_str).ok()?;
+        use chrono::Datelike;
+        let now_utc = chrono::Utc::now();
+        let kst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
+        let now_kst = now_utc.with_timezone(&kst);
+        let day = created.day();
+        // Next renewal in UTC
+        let mut y = now_utc.year();
+        let mut m = now_utc.month();
+        let next_utc = loop {
+            if let Some(d) = chrono::NaiveDate::from_ymd_opt(y, m, day) {
+                let dt = d.and_hms_opt(0, 0, 0)?.and_utc();
+                if dt > now_utc { break dt; }
+            }
+            m += 1;
+            if m > 12 { m = 1; y += 1; }
+        };
+        // Next renewal in KST
+        let mut yk = now_kst.year();
+        let mut mk = now_kst.month();
+        let next_kst = loop {
+            if let Some(d) = chrono::NaiveDate::from_ymd_opt(yk, mk, day) {
+                let dt = d.and_hms_opt(0, 0, 0)?.and_local_timezone(kst).single()?;
+                if dt > now_kst { break dt; }
+            }
+            mk += 1;
+            if mk > 12 { mk = 1; yk += 1; }
+        };
+        let days = (next_utc - now_utc).num_days();
+        let utc_str = next_utc.format("%Y-%m-%d").to_string();
+        let kst_str = next_kst.format("%Y-%m-%d").to_string();
+        Some((utc_str, kst_str, days))
+    }
+    match inner() {
+        Some((utc, kst, days)) => (Some(utc), Some(kst), Some(days)),
+        None => (None, None, None),
     }
 }
 
@@ -183,12 +231,17 @@ pub async fn get_oauth_usage(force: Option<bool>) -> Result<OAuthUsage, String> 
     let (plan_raw, _) = crate::claude_usage::read_subscription_pub();
     let plan = crate::claude_usage::plan_name_for(&plan_raw);
 
+    let (renews_at_utc, renews_at_kst, renews_days) = read_claude_renewal();
+
     let result = OAuthUsage {
         items,
         fetched_at: chrono::Utc::now().timestamp(),
         cached: false,
         plan,
         plan_raw,
+        renews_at_utc,
+        renews_at_kst,
+        renews_days,
     };
 
     *CACHE.lock().unwrap() = Some((Instant::now(), result.clone()));

@@ -20,7 +20,9 @@ export type ThemeProps = {
   onToggleDark: () => void;
   isDark: boolean;
   lang: "en" | "ko";
+  tz: "utc" | "kst";
   onToggleLang: () => void;
+  onSetTz: (v: "utc" | "kst") => void;
   onOpenProvider: (id: string) => void;
   onLoadSegment: (id: string, kind: "api" | "plan") => Promise<QuotaPayload | null>;
 };

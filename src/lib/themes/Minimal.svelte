@@ -4,7 +4,7 @@
   import Settings from "./Settings.svelte";
   import Logo from "../Logo.svelte";
   import Sparkline from "../Sparkline.svelte";
-  import { fetchClaudeDailyTokens, fetchUsageHistory, type DailyEntry, type UsageHistoryPoint } from "../realData";
+  import { fetchClaudeDailyTokens, fetchUsageHistory, fetchChatGptUsageHistory, fetchCodexDailyTokens, fetchServiceStatus, type DailyEntry, type UsageHistoryPoint, type ServiceStatus } from "../realData";
   import { t as tr, providerName } from "../i18n";
 
   let p: ThemeProps = $props();
@@ -26,9 +26,24 @@
     } catch {}
   });
 
-  let view = $state<"now" | "trend">("now");
+  let view = $state<"now" | "trend" | "status">("now");
+  let statusData = $state<Record<string, ServiceStatus | null>>({});
+  async function loadStatus(provider: string) {
+    if (statusData[provider]) return;
+    const s = await fetchServiceStatus(provider);
+    statusData = { ...statusData, [provider]: s };
+  }
+  $effect(() => {
+    for (const prov of p.providers) {
+      fetchServiceStatus(prov.id).then(s => {
+        statusData = { ...statusData, [prov.id]: s };
+      });
+    }
+  });
+
   let daily = $state<DailyEntry[]>([]);
   let history = $state<UsageHistoryPoint[]>([]);
+  let chatgptHistory = $state<UsageHistoryPoint[]>([]);
   let loadingDaily = $state(false);
   type TrendDiag = { path: string; path_exists: boolean; jsonl_count: number; total_bytes: number };
   let trendDiag = $state<TrendDiag | null>(null);
@@ -48,22 +63,35 @@
       trendDiag = diag;
     } finally { loadingDaily = false; }
   }
-  async function setView(v: "now" | "trend") {
+  let codexDaily = $state<DailyEntry[]>([]);
+  async function loadChatGptTrend() {
+    if ((codexDaily.length > 0 || chatgptHistory.length > 0) || loadingDaily) return;
+    loadingDaily = true;
+    try {
+      const [d, h] = await Promise.all([fetchCodexDailyTokens(30), fetchChatGptUsageHistory(30)]);
+      codexDaily = d;
+      chatgptHistory = h;
+    } finally { loadingDaily = false; }
+  }
+  async function setView(v: "now" | "trend" | "status") {
     view = v;
-    if (v === "trend") await loadDaily();
+    if (v === "trend") {
+      if (active === "claude") await loadDaily();
+      else if (active === "openai") await loadChatGptTrend();
+    }
+    if (v === "status") await loadStatus(active);
   }
   $effect(() => {
     if (active === "claude" && view === "trend") loadDaily();
+    if (active === "openai" && view === "trend") loadChatGptTrend();
   });
 
   async function focus(id: string) {
     active = id;
-    if (id === "claude") {
-      activePayload = p.usageCache[id] ?? null;
-    } else {
-      // mock for now
+    activePayload = p.usageCache[id] ?? null;
+    if (!activePayload) {
       loading = true;
-      activePayload = await p.onLoadSegment(id, "api");
+      activePayload = await p.onLoadSegment(id, "plan");
       loading = false;
     }
   }
@@ -153,17 +181,118 @@
       <div class="big-row">
         <span class="big-logo"><Logo id={active} size={20} /></span>
         <div class="big-name">{providerName(activeProvider?.id ?? "", p.lang, activeProvider?.name ?? "")}</div>
-        {#if active === "claude"}
+        {#if active === "claude" || active === "openai"}
           <div class="tabs">
             <button class:active={view === "now"} onclick={() => setView("now")}>{T.nowTab}</button>
             <span class="tab-sep">·</span>
             <button class:active={view === "trend"} onclick={() => setView("trend")}>{T.trendTab}</button>
+            <span class="tab-sep">·</span>
+            <button class:active={view === "status"} onclick={() => setView("status")}>{T.statusTab}</button>
           </div>
         {/if}
-        <button class="link" onclick={() => p.onOpenProvider(active)}>{T.openDashboard}</button>
+        <button class="link" onclick={async () => {
+          if (view === "status") {
+            const urls: Record<string, string> = { claude: "https://status.claude.com", openai: "https://status.openai.com" };
+            if (urls[active]) { const { openUrl } = await import("@tauri-apps/plugin-opener"); openUrl(urls[active]); }
+          } else { p.onOpenProvider(active); }
+        }}>{view === "status" ? "status page ↗" : T.openDashboard}</button>
       </div>
 
-      {#if active === "claude" && view === "trend"}
+      {#if active === "openai" && view === "trend"}
+        {#if loadingDaily}
+          <div class="hint">{T.loadingDaily}</div>
+        {:else if codexDaily.length && codexDaily.some((d) => d.tokens > 0)}
+          {@const peak = Math.max(...codexDaily.map(d=>d.tokens))}
+          {@const total = codexDaily.reduce((a,d)=>a+d.tokens,0)}
+          {@const avg = Math.round(total/codexDaily.length)}
+          {@const totalMsgs = codexDaily.reduce((a,d)=>a+d.messages,0)}
+          {@const fmtNum = (n: number) => n >= 1e9 ? (n/1e9).toFixed(2)+"B" : n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : String(n)}
+          <div class="trend-wrap">
+            <Sparkline
+              data={codexDaily.map((d) => ({ date: d.date, value: d.tokens }))}
+              accent={activeProvider?.accent ?? "#36ffaa"}
+              height={110}
+            />
+            <div class="trend-stats">
+              <div class="ts-cell"><div class="ts-k">{T.peak}</div><div class="ts-v">{fmtNum(peak)}<span class="ts-u">{T.tokens}</span></div></div>
+              <div class="ts-cell"><div class="ts-k">{T.avg}</div><div class="ts-v">{fmtNum(avg)}<span class="ts-u">{T.perDay}</span></div></div>
+              <div class="ts-cell"><div class="ts-k">{T.total}</div><div class="ts-v">{fmtNum(total)}<span class="ts-u">{T.tokens}</span></div></div>
+              <div class="ts-cell"><div class="ts-k">{T.msgs}</div><div class="ts-v">{totalMsgs.toLocaleString()}</div></div>
+            </div>
+          </div>
+        {:else}
+          <div class="trend-empty">
+            <div class="trend-empty-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M4 24L11 18L17 22L28 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 3"/>
+                <circle cx="11" cy="18" r="1.5" fill="currentColor"/>
+                <circle cx="17" cy="22" r="1.5" fill="currentColor"/>
+                <circle cx="28" cy="10" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="trend-empty-h">{T.noDailyData}</div>
+            <div class="trend-empty-sub">{T.noDailyDataHintGeneric}</div>
+          </div>
+        {/if}
+      {:else if view === "status"}
+        {@const st = statusData[active]}
+        {#if !st}
+          <div class="hint">{T.loading}</div>
+        {:else}
+          {@const CATS: Record<string, Record<string, string[]>> = {
+            claude: {
+              "Web": ["claude.ai"],
+              "Developer": ["Claude Console (platform.claude.com)", "Claude API (api.anthropic.com)", "Claude Code"],
+              "Other": ["Claude Cowork", "Claude for Government"],
+            },
+            openai: {
+              "Chat": ["Conversations", "GPTs", "Search", "Deep Research", "ChatGPT Atlas", "Image Generation"],
+              "Code": ["CLI", "VS Code extension", "Codex API", "Agent"],
+              "API": ["Responses", "Batch", "Embeddings", "Files", "Realtime", "Fine-tuning", "Moderations"],
+              "Media": ["Sora", "Audio", "Images"],
+              "Infra": ["Login", "File uploads", "FedRAMP", "Compliance API", "Connectors/Apps"],
+            },
+          }}
+          {@const cats = CATS[active] ?? { "All": st.components.map(c => c.name) }}
+          {@const cm = Object.fromEntries(st.components.map(c => [c.name, c.status]))}
+          {@const allOk = Object.values(cm).every(s => s === "operational")}
+          {@const okTotal = Object.values(cm).filter(s => s === "operational").length}
+          {@const total = Object.keys(cm).length}
+          <div class="sv-c-summary">
+            <div class="sv-c-ring">
+              <svg width="48" height="48" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="#ddd" stroke-width="4"/>
+                <circle cx="24" cy="24" r="20" fill="none" stroke={allOk ? "#4a7" : "#c93"} stroke-width="4"
+                  stroke-dasharray="{(okTotal/total)*125.6} 125.6"
+                  stroke-linecap="round" transform="rotate(-90 24 24)"/>
+              </svg>
+              <span class="sv-c-pct">{okTotal}/{total}</span>
+            </div>
+            <div class="sv-c-desc">
+              {#if allOk}
+                <div class="sv-c-ok">All Systems Operational</div>
+              {:else}
+                <div class="sv-c-warn">{total - okTotal} issue{total-okTotal>1?"s":""}</div>
+              {/if}
+            </div>
+          </div>
+          {#if st.incidents.length > 0}
+            {#each st.incidents.slice(0,2) as inc}
+              <div class="sv-c-inc">{inc.name}</div>
+            {/each}
+          {/if}
+          {#each Object.entries(cats) as [catName, catItems] (catName)}
+            {@const cc = catItems.filter(n => cm[n] != null)}
+            {@const bad = cc.filter(n => cm[n] !== "operational")}
+            {#if bad.length > 0}
+              <div class="sv-c-cat">{catName}</div>
+              {#each bad as n}
+                <div class="sv-c-issue"><span class="sv-c-issue-dot"></span>{n} <span class="sv-c-issue-st">{(cm[n]??"").replace(/_/g," ")}</span></div>
+              {/each}
+            {/if}
+          {/each}
+        {/if}
+      {:else if active === "claude" && view === "trend"}
         {#if loadingDaily}
           <div class="hint">{T.loadingDaily}</div>
         {:else if daily.length && daily.some((d) => d.tokens > 0)}
@@ -188,7 +317,6 @@
         {:else if history.length >= 2}
           {@const fmtTime = (ts: number) => { const d = new Date(ts*1000); return `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }}
           {@const sevenSeries = history.filter(p => p.seven_day != null).map(p => ({ date: fmtTime(p.ts), value: (p.seven_day ?? 0) * 100 }))}
-          {@const fiveSeries = history.filter(p => p.five_hour != null).map(p => ({ date: fmtTime(p.ts), value: (p.five_hour ?? 0) * 100 }))}
           <div class="trend-wrap">
             <div class="trend-h">{T.trendUtilHeader}</div>
             <Sparkline data={sevenSeries} accent={activeProvider?.accent ?? "#d97757"} height={90} />
@@ -218,7 +346,11 @@
       {:else if activePayload?.error}
         <div class="hint err">{activePayload.error}</div>
       {:else if activePayload?.segments?.length}
-        {#if activePayload.plan}<div class="plan-line">{T.plan} · <strong>{activePayload.plan}</strong></div>{/if}
+        {#if activePayload.plan}
+          {@const renewDate = p.tz === "kst" ? activePayload.renewsKst : activePayload.renewsUtc}
+          {@const renewDays = activePayload.renewsDays}
+          <div class="plan-line">{T.plan} · <strong>{activePayload.plan}</strong>{#if renewDate}<span class="renew-sep"></span>resets {renewDate} ({renewDays}d){/if}</div>
+        {/if}
         {#each activePayload.segments as seg (seg.label)}
           {@const pct = Math.round((seg.used / seg.limit) * 100)}
           <div class="seg">
@@ -239,11 +371,11 @@
   <footer class="ft" data-tauri-drag-region={p.pinned ? "false" : true}>
     <span class="ft-l" data-tauri-drag-region={p.pinned ? "false" : true}>{T.sources(p.providers.length)}</span>
     <span class="ft-c" data-tauri-drag-region={p.pinned ? "false" : true}>{T.lastSync} {p.lastRefresh ? p.lastRefresh.toLocaleTimeString(p.lang === "ko" ? "ko-KR" : "en-US",{hour12:false}) : "—"}</span>
-    <span class="ft-r" data-tauri-drag-region={p.pinned ? "false" : true}>v0.1.3</span>
+    <span class="ft-r" data-tauri-drag-region={p.pinned ? "false" : true}>v0.1.4</span>
   </footer>
 
   {#if showSettings}
-    <Settings onClose={() => (showSettings = false)} />
+    <Settings onClose={() => (showSettings = false)} tz={p.tz} onSetTz={p.onSetTz} />
   {/if}
 </div>
 
@@ -685,6 +817,7 @@
   .link:hover { text-decoration: underline; }
   .plan-line { font-size: 10px; color: #777; padding-top: 14px; }
   .plan-line strong { color: #1a1a1a; font-weight: 600; }
+  .renew-sep { display: inline-block; width: 22px; }
   .hint { color: #999; font-size: 11px; padding: 8px 0; }
   .hint.err { color: #cc3333; }
   .seg { padding: 8px 0 0 0; border-top: 1px solid #ece6d5; margin-top: 6px; }
@@ -748,4 +881,16 @@
     0%, 100% { opacity: 0.25; transform: scale(0.85); }
     50%      { opacity: 1;    transform: scale(1.05); }
   }
+
+  .sv-c-summary { display: flex; align-items: center; gap: 14px; padding: 8px 0 10px; }
+  .sv-c-ring { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+  .sv-c-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #666; }
+  .sv-c-desc { font-size: 12px; }
+  .sv-c-ok { color: #3a8; font-weight: 500; }
+  .sv-c-warn { color: #c93; font-weight: 500; }
+  .sv-c-inc { font-size: 10.5px; color: #a66; padding: 5px 0; border-bottom: 1px solid #eee; margin-bottom: 4px; }
+  .sv-c-cat { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 0 2px; }
+  .sv-c-issue { font-size: 11px; color: #866; display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .sv-c-issue-dot { width: 5px; height: 5px; border-radius: 50%; background: #c55; flex-shrink: 0; }
+  .sv-c-issue-st { color: #966; margin-left: auto; font-size: 10px; text-transform: capitalize; }
 </style>

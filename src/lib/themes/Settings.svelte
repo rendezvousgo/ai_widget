@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { listKeys, setKey, type KeyStatus } from "../realData";
 
-  let { onClose }: { onClose: () => void } = $props();
+  let { onClose, tz, onSetTz }: { onClose: () => void; tz: "utc" | "kst"; onSetTz: (v: "utc" | "kst") => void } = $props();
 
   let statuses = $state<KeyStatus[]>([]);
   let drafts = $state<Record<string, string>>({});
@@ -80,6 +80,11 @@
           </div>
         </div>
       {/each}
+    </div>
+    <div class="tz-row">
+      <span class="tz-label">Timezone</span>
+      <button class="tz-btn" class:active={tz === "kst"} onclick={() => onSetTz("kst")}>KST</button>
+      <button class="tz-btn" class:active={tz === "utc"} onclick={() => onSetTz("utc")}>UTC</button>
     </div>
     <footer>
       <button class="done" onclick={onClose}>Done</button>
@@ -182,4 +187,8 @@
     letter-spacing: 0.04em;
   }
   .done:hover { background: #444; }
+  .tz-row { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid #d8d3c5; }
+  .tz-label { font-size: 12px; color: #666; flex: 1; }
+  .tz-btn { font-size: 11px; padding: 4px 12px; border: 1px solid #d8d3c5; background: #fff; color: #666; cursor: pointer; font-family: inherit; }
+  .tz-btn.active { background: #1a1a1a; color: #f7f5ef; border-color: #1a1a1a; }
 </style>
