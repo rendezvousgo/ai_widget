@@ -272,10 +272,29 @@ pub fn get_codex_daily_tokens(days: Option<u32>) -> Vec<CodexDailyEntry> {
             messages: row.get(2)?,
         })
     });
-    match rows {
+    let sparse: Vec<CodexDailyEntry> = match rows {
         Ok(r) => r.filter_map(|r| r.ok()).collect(),
-        Err(_) => vec![],
+        Err(_) => return vec![],
+    };
+    if sparse.is_empty() { return vec![]; }
+    // Fill date gaps with zeros so the chart has continuous daily points
+    use chrono::NaiveDate;
+    let mut filled: Vec<CodexDailyEntry> = Vec::new();
+    let start = NaiveDate::parse_from_str(&sparse[0].date, "%Y-%m-%d").unwrap_or_default();
+    let end = NaiveDate::parse_from_str(&sparse[sparse.len()-1].date, "%Y-%m-%d").unwrap_or_default();
+    let mut cur = start;
+    let mut si = 0;
+    while cur <= end {
+        let ds = cur.format("%Y-%m-%d").to_string();
+        if si < sparse.len() && sparse[si].date == ds {
+            filled.push(CodexDailyEntry { date: ds, tokens: sparse[si].tokens, messages: sparse[si].messages });
+            si += 1;
+        } else {
+            filled.push(CodexDailyEntry { date: ds, tokens: 0, messages: 0 });
+        }
+        cur += chrono::Duration::days(1);
     }
+    filled
 }
 
 #[tauri::command]
