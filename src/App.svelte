@@ -79,6 +79,7 @@
       ]);
       usageCache = { ...usageCache, claude, openai };
       lastRefresh = new Date();
+      if (loggedIn === false) checkLogin();
     } finally {
       refreshing = false;
     }
@@ -240,7 +241,7 @@
   {/if}
 
   {#if loggedIn === false}
-    <Login {lang} isDark={theme === "dark"} onLoggedIn={() => { loggedIn = true; refreshClaude(true); }} />
+    <Login {lang} isDark={theme === "dark"} onLoggedIn={() => { loggedIn = true; refreshAll(true); }} />
   {/if}
 </main>
 

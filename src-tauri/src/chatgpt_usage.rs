@@ -147,14 +147,19 @@ pub async fn get_chatgpt_usage(force: Option<bool>) -> Result<ChatGptUsage, Stri
         "no access_token in ~/.codex/auth.json — run `codex login` first".to_string()
     })?;
 
-    let output = std::process::Command::new("curl")
-        .args([
-            "-s", "--max-time", "10",
-            "-H", &format!("Authorization: Bearer {}", token),
-            "-H", "User-Agent: ai-quota-widget/0.1",
-            "https://chatgpt.com/backend-api/wham/usage",
-        ])
-        .output()
+    let mut cmd = std::process::Command::new("curl");
+    cmd.args([
+        "-s", "--max-time", "10",
+        "-H", &format!("Authorization: Bearer {}", token),
+        "-H", "User-Agent: ai-quota-widget/0.1",
+        "https://chatgpt.com/backend-api/wham/usage",
+    ]);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    let output = cmd.output()
         .map_err(|e| {
             if let Some(stale) = stale_fallback() { return "stale".to_string(); }
             format!("curl: {}", e)
@@ -351,11 +356,14 @@ except Exception as e:
             token
         );
 
-        let output = std::process::Command::new("python3")
-            .arg("-c")
-            .arg(&script)
-            .output()
-            .ok()?;
+        let mut cmd = std::process::Command::new("python3");
+        cmd.arg("-c").arg(&script);
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000);
+        }
+        let output = cmd.output().ok()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).ok()?;
         let renews_str = parsed.get("renews_at")?.as_str()?;
