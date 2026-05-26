@@ -256,7 +256,26 @@ pub struct CodexDailyEntry {
 pub fn get_codex_daily_tokens(days: Option<u32>) -> Vec<CodexDailyEntry> {
     let days = days.unwrap_or(30).clamp(1, 90) as i64;
     let Some(home) = crate::paths::home() else { return vec![] };
-    let db_path = home.join(".codex").join("state_5.sqlite");
+    let codex_dir = home.join(".codex");
+    // Find the latest state_*.sqlite file (version number varies across Codex CLI versions)
+    let db_path = match std::fs::read_dir(&codex_dir) {
+        Ok(entries) => {
+            let mut candidates: Vec<std::path::PathBuf> = entries
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.starts_with("state_") && n.ends_with(".sqlite"))
+                        .unwrap_or(false)
+                })
+                .collect();
+            candidates.sort();
+            candidates.last().cloned()
+        }
+        Err(_) => None,
+    };
+    let Some(db_path) = db_path else { return vec![] };
     let Ok(db) = rusqlite::Connection::open_with_flags(&db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY) else { return vec![] };
     let cutoff = chrono::Utc::now().timestamp() - days * 24 * 3600;
     let mut stmt = match db.prepare(
