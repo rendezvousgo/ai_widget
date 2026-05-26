@@ -70,7 +70,7 @@
   const xLabelIdx = $derived(
     data.length === 0
       ? []
-      : [0, Math.floor((data.length - 1) / 3), Math.floor(2 * (data.length - 1) / 3), data.length - 1]
+      : [...new Set([0, Math.floor((data.length - 1) / 3), Math.floor(2 * (data.length - 1) / 3), data.length - 1])]
   );
 
   const tooltipPctLeft = $derived(
