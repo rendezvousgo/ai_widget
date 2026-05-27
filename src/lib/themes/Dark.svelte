@@ -891,7 +891,7 @@
   .sv-c-desc { font-size: 12px; }
   .sv-c-ok { color: #5b8; font-weight: 500; }
   .sv-c-warn { color: #c93; font-weight: 500; }
-  .sv-c-inc { font-size: 10.5px; color: #c88; padding: 5px 0; border-bottom: 1px solid #222; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sv-c-inc { font-size: 10.5px; color: #c88; padding: 5px 6px; margin-bottom: 3px; background: rgba(200,85,85,0.07); border-radius: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
   .sv-c-cat { font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 0 2px; }
   .sv-c-issue { font-size: 11px; color: #baa; display: flex; align-items: center; gap: 8px; padding: 3px 0; }
   .sv-c-issue-dot { width: 5px; height: 5px; border-radius: 50%; background: #c55; flex-shrink: 0; }
